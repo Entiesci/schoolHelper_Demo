@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../app_state.dart';
-import '../models.dart';
+import '../../app_state.dart';
+import '../../models.dart';
 
 extension PriorityX on IssuePriority {
   String get label => ['低', '中', '高', '紧急'][index];

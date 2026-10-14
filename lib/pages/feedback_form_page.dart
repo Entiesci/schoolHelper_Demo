@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../app_state.dart';
-import '../models.dart';
+import '../../app_state.dart';
+import '../../models.dart';
 
 class FeedbackFormPage extends StatefulWidget {
   const FeedbackFormPage({super.key});

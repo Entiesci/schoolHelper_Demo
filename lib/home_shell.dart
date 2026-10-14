@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../app_state.dart';
-import '../../models.dart';
-import '../feedback_form_page.dart';
-import '../issue_list_page.dart';
-import '../kanban_page.dart';
-import 'login_page.dart';
-import '../todo_page.dart';
-import 'ai_review_page.dart';
+import '../app_state.dart';
+// import '../models.dart';
+import 'pages/feedback_form_page.dart';
+import 'pages/issue_list_page.dart';
+import 'pages/kanban_page.dart';
+import 'pages/login_page.dart';
+import 'pages/todo_page.dart';
+import 'pages/ai_review_page.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});

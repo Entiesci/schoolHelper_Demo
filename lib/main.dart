@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'app_state.dart';          // 👈 Provider 现在这里
-import 'pages/home_shell.dart';
+import 'home_shell.dart';
 import 'pages/login_page.dart';
 
 void main() => runApp(const MyApp());

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../app_state.dart';
 import '../models.dart';
-import '../mock_data.dart';
+// import '../mock_data.dart';
 // import 'issue_list_page.dart'; // 复用 priority/status 扩展
 
 class AiReviewPage extends StatefulWidget {
