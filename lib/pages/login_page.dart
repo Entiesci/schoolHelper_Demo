@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../app_state.dart';
-import '../../models.dart';
-import '../../mock_data.dart';
+import '../../../app_state.dart';
+import '../../../models.dart';
+import '../../../mock_data.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

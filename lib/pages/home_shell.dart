@@ -6,6 +6,7 @@ import '../issue_list_page.dart';
 import '../kanban_page.dart';
 import 'login_page.dart';
 import '../todo_page.dart';
+import 'ai_review_page.dart';
 
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -25,16 +26,20 @@ class _HomeShellState extends State<HomeShell> {
     // 学生：列表 / 提交 / 看板；员工：待办 / 列表 / 看板
     final pages = isStudent
         ? [const IssueListPage(), const FeedbackFormPage(), const KanbanPage()]
-        : [const TodoPage(), const IssueListPage(), const KanbanPage()];
+        : [const TodoPage(), const AiReviewPage(), const IssueListPage(), const KanbanPage()];
+        // : [const TodoPage(), const AiReviewPage(), const AiReviewPage(), const KanbanPage()];
 
     final navItems = isStudent
         ? const [BottomNavigationBarItem(icon: Icon(Icons.list), label: '问题列表'),
                  BottomNavigationBarItem(icon: Icon(Icons.edit_note), label: '提交反馈'),
+                //  BottomNavigationBarItem(icon: Icon(Icons.psychology), label: 'AI 清洗'),
                  BottomNavigationBarItem(icon: Icon(Icons.view_kanban), label: '看板')]
-        : const [BottomNavigationBarItem(icon: Icon(Icons.checklist), label: '我的待办'),
-                 BottomNavigationBarItem(icon: Icon(Icons.list), label: '问题列表'),
-                 BottomNavigationBarItem(icon: Icon(Icons.view_kanban), label: '看板')];
-
+        : const [
+                BottomNavigationBarItem(icon: Icon(Icons.checklist), label: '我的待办'),
+                BottomNavigationBarItem(icon: Icon(Icons.psychology), label: 'AI 清洗'),
+                BottomNavigationBarItem(icon: Icon(Icons.list), label: '问题列表'),
+                BottomNavigationBarItem(icon: Icon(Icons.view_kanban), label: '看板'),
+              ];
     return Scaffold(
       appBar: AppBar(
         title: Text(navItems[index].label!),

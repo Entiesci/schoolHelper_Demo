@@ -11,6 +11,11 @@ class TodoPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = AppState.of(context); 
     final myDept = state.currentUser!.dept!;
+    if (state.currentUser == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+  }
     final todos = state.issues
         .where((e) => e.dept == myDept &&
             (e.status == IssueStatus.pending || e.status == IssueStatus.processing))
