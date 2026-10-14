@@ -65,6 +65,25 @@ class AppState extends ChangeNotifier {
     issues.firstWhere((e) => e.id == id).status = status;
     notifyListeners();
   }
+
+  //new ai-old page adaptation
+
+  final List<AiCleaningResult> aiResults = List.from(mockAiResults);
+
+  /// 标记某条 AI 结果已采纳（不改内容）
+  void adoptAiResult(String id) {
+    aiResults.firstWhere((e) => e.id == id).adopted = true;
+    notifyListeners();
+  }
+
+  /// 人工修正后再采纳
+  void correctAiResult(String id, Dept dept, IssuePriority priority) {
+    final r = aiResults.firstWhere((e) => e.id == id);
+    r.cleanDept = dept;
+    r.cleanPriority = priority;
+    r.adopted = true;
+    notifyListeners();
+  }
 }
 
 /// 👇 把 Provider 类从 main.dart 挪到这里

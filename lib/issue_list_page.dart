@@ -142,7 +142,7 @@ class _IssueListPageState extends State<IssueListPage> {
                               visualDensity: VisualDensity.compact,
                               backgroundColor: issue.priority.color.withOpacity(0.15),
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 2),
                             Text(issue.status.label,
                                 style: TextStyle(fontSize: 11, color: issue.status.color)),
                           ],
