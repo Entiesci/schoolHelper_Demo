@@ -43,7 +43,7 @@ class _LoginPageState extends State<LoginPage> {
                       height: 64,
                     ),
                     const SizedBox(height: 12),
-                    Text('回声信箱 - 校园反馈系统',
+                    Text('回音信箱',
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.headlineSmall),
                     const SizedBox(height: 28),
