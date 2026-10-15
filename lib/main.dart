@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
     return AppStateProvider(
       state: AppState(),
       child: MaterialApp(
-        title: '校园反馈系统',
+        title: '回声信箱 - 校园反馈系统',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
