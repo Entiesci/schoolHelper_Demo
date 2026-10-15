@@ -36,7 +36,12 @@ class _LoginPageState extends State<LoginPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.school, size: 64, color: Color(0xFF3D5AFE)),
+                    // const Icon(Icons.school, size: 64, color: Color(0xFF3D5AFE)),
+                    Image.asset(
+                      'assets/images/logo.jpg',
+                      width: 64,
+                      height: 64,
+                    ),
                     const SizedBox(height: 12),
                     Text('回声信箱 - 校园反馈系统',
                         textAlign: TextAlign.center,
