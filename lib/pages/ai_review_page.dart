@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../app_state.dart';
 import '../models.dart';
-// import '../mock_data.dart';
-// import 'issue_list_page.dart'; // 复用 priority/status 扩展
+import '../services/api_service.dart';
+import 'ai_task_detail_page.dart';
 
 class AiReviewPage extends StatefulWidget {
   const AiReviewPage({super.key});
@@ -14,6 +16,15 @@ class AiReviewPage extends StatefulWidget {
 class _AiReviewPageState extends State<AiReviewPage> {
   double _minConfidence = 0;
   bool _hideAdopted = false;
+  bool _isRunningTask = false;
+  String _taskStatus = '未开始';
+  String? _taskKey;
+
+  @override
+  void dispose() {
+    _isRunningTask = false;
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +36,6 @@ class _AiReviewPageState extends State<AiReviewPage> {
 
     return Column(
       children: [
-        // ===== 顶部统计 + 筛选条 =====
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: Row(
@@ -37,9 +47,10 @@ class _AiReviewPageState extends State<AiReviewPage> {
                   Icons.check_circle, Colors.green),
               const SizedBox(width: 8),
               _statCard(context, '平均置信度',
-                  '${((state.aiResults.map((r) => r.confidence).reduce((a, b) => a + b) /
-                          state.aiResults.length) * 100).toStringAsFixed(0)}%',
-                  Icons.psychology, Color(0xFF3D5AFE)),
+                  state.aiResults.isEmpty
+                      ? '0%'
+                      : '${((state.aiResults.map((r) => r.confidence).reduce((a, b) => a + b) / state.aiResults.length) * 100).toStringAsFixed(0)}%',
+                  Icons.psychology, const Color(0xFF3D5AFE)),
             ],
           ),
         ),
@@ -61,6 +72,51 @@ class _AiReviewPageState extends State<AiReviewPage> {
                 onChanged: (v) => setState(() => _hideAdopted = v!),
               ),
               const Text('隐藏已采纳', style: TextStyle(fontSize: 13)),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  icon: const Icon(Icons.auto_awesome),
+                  onPressed: _isRunningTask ? null : _startCrawl,
+                  label: Text(_isRunningTask ? 'AI 处理中...' : '启动 AI 清洗'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    final key = _taskKey ?? AppState.of(context).latestAiTaskKey;
+                    if (key == null || key.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('先启动一个 AI 任务，再查看详情')),
+                      );
+                      return;
+                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AiTaskDetailPage(taskKey: key),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      _taskKey == null ? '任务：未启动' : '任务：$_taskKey\n状态：$_taskStatus',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -103,7 +159,81 @@ class _AiReviewPageState extends State<AiReviewPage> {
     );
   }
 
-  // ===== 一键采纳：把清洗结果直接转成 Issue 入库 =====
+  Future<void> _startCrawl() async {
+    if (!mounted) return;
+    setState(() {
+      _isRunningTask = true;
+      _taskStatus = '启动中';
+    });
+
+    try {
+      final response = await ApiService.startCrawl();
+      final key = response['key']?.toString() ?? response['ts_key']?.toString();
+      if (response['success'] != true || key == null || key.isEmpty) {
+        throw Exception(response['error']?.toString() ?? 'AI 任务启动失败');
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _taskKey = key;
+        _taskStatus = '已启动';
+      });
+      await AppState.of(context).saveLatestAiTaskKey(key);
+
+      await _pollCrawlStatus(key);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('AI 启动失败：$e'), backgroundColor: Colors.red),
+      );
+      setState(() {
+        _taskStatus = '失败';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isRunningTask = false);
+      }
+    }
+  }
+
+  Future<void> _pollCrawlStatus(String key) async {
+    while (mounted && _isRunningTask) {
+      final statusResp = await ApiService.getCrawlStatus(key);
+      final status = statusResp['status']?.toString() ?? 'unknown';
+
+      if (!mounted) return;
+      setState(() {
+        _taskStatus = status;
+      });
+
+      if (status == 'done') {
+        final resultResp = await ApiService.getCrawlResult(key);
+        if (resultResp['success'] == true) {
+          final parsed = ApiService.parseCrawlResult(resultResp);
+          if (!mounted) return;
+          AppState.of(context).aiResults
+            ..clear()
+            ..addAll(parsed);
+          if (parsed.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('AI 处理已完成，但未返回有效 issue 数据')),
+            );
+          }
+        }
+        break;
+      }
+
+      if (status.startsWith('failed') || status == 'unknown') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('AI 任务异常：$status'), backgroundColor: Colors.orange),
+        );
+        break;
+      }
+
+      await Future.delayed(const Duration(seconds: 60));
+    }
+  }
+
   void _adopt(AppState state, AiCleaningResult r) {
     showDialog(
       context: context,
@@ -140,7 +270,6 @@ class _AiReviewPageState extends State<AiReviewPage> {
     );
   }
 
-  // ===== 人工修正：低置信度时人工调整后再入库 =====
   void _showEditSheet(BuildContext context, AppState state, AiCleaningResult r) {
     Dept dept = r.cleanDept;
     IssuePriority priority = r.cleanPriority;
@@ -191,7 +320,6 @@ class _AiReviewPageState extends State<AiReviewPage> {
   }
 }
 
-// ===== 单条对比卡片：左原始 / 右结构化 =====
 class _CompareCard extends StatelessWidget {
   final AiCleaningResult result;
   final VoidCallback onAdopt;
