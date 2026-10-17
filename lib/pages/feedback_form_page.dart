@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../app_state.dart';
 import '../../models.dart';
+import '../../services/api_service.dart';
 
 class FeedbackFormPage extends StatefulWidget {
   const FeedbackFormPage({super.key});
@@ -17,6 +18,8 @@ class _FeedbackFormPageState extends State<FeedbackFormPage> {
   Dept _dept = Dept.logistics;
   IssuePriority _priority = IssuePriority.medium;
   final Set<String> _tags = {};
+  bool _isSubmitting = false;
+  String? _submitError;
 
   static const tagOptions = ['食堂', '宿舍', '教学', '网络', '安全', '卫生', '设备'];
 
@@ -87,35 +90,85 @@ class _FeedbackFormPageState extends State<FeedbackFormPage> {
                   }).toList(),
                 ),
                 const SizedBox(height: 28),
+                if (_submitError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      _submitError!,
+                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  ),
                 SizedBox(
                   width: double.infinity,
                   height: 48,
                   child: FilledButton.icon(
                     icon: const Icon(Icons.send),
-                    label: const Text('提交反馈'),
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        final id = 'FB-${1000 + AppState.of(context).issues.length + 1}';
-                        AppState.of(context).addIssue(Issue(
-                          id: id,
-                          title: _title.text.trim(),
-                          description: _desc.text.trim(),
-                          location: _location.text.trim(),
-                          dept: _dept,
-                          priority: _priority,
-                          status: IssueStatus.pending,
-                          submitter: AppState.of(context).currentUser!.name,
-                          createdAt: DateTime.now(),
-                          tags: _tags.toList(),
-                        ));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('✅ 提交成功！编号 $id'), backgroundColor: Colors.green),
-                        );
-                        _formKey.currentState!.reset();
-                        _title.clear(); _desc.clear(); _location.clear();
-                        setState(() { _tags.clear(); });
-                      }
-                    },
+                    label: Text(_isSubmitting ? '提交中...' : '提交反馈'),
+                    onPressed: _isSubmitting
+                        ? null
+                        : () async {
+                            if (!_formKey.currentState!.validate()) {
+                              return;
+                            }
+
+                            final title = _title.text.trim();
+                            final description = _desc.text.trim();
+                            final problem = [title, description].where((e) => e.isNotEmpty).join('\n');
+                            final level = switch (_priority) {
+                              IssuePriority.low => 1,
+                              IssuePriority.medium => 2,
+                              IssuePriority.high => 3,
+                              IssuePriority.urgent => 4,
+                            };
+
+                            setState(() {
+                              _isSubmitting = true;
+                              _submitError = null;
+                            });
+
+                            try {
+                              final response = await ApiService.submitFeedback(
+                                problem: problem,
+                                cate: _dept.label,
+                                level: level,
+                              );
+
+                              if (response['success'] != true) {
+                                throw Exception(response['error']?.toString() ?? '提交失败');
+                              }
+
+                              final id = 'FB-${1000 + AppState.of(context).issues.length + 1}';
+                              AppState.of(context).addIssue(Issue(
+                                id: id,
+                                title: title,
+                                description: description,
+                                location: _location.text.trim(),
+                                dept: _dept,
+                                priority: _priority,
+                                status: IssueStatus.pending,
+                                submitter: AppState.of(context).currentUser!.name,
+                                createdAt: DateTime.now(),
+                                tags: _tags.toList(),
+                              ));
+
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('✅ 提交成功！编号 $id'), backgroundColor: Colors.green),
+                              );
+                              _formKey.currentState!.reset();
+                              _title.clear(); _desc.clear(); _location.clear();
+                              setState(() => _tags.clear());
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              setState(() {
+                                _submitError = '提交失败：${e.toString()}';
+                              });
+                            } finally {
+                              if (mounted) {
+                                setState(() => _isSubmitting = false);
+                              }
+                            }
+                          },
                   ),
                 ),
               ],

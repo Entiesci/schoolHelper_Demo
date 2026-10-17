@@ -32,12 +32,18 @@
 
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'models.dart';
 import 'mock_data.dart';
 
 class AppState extends ChangeNotifier {
   AppUser? currentUser;
   final List<Issue> issues = List.from(mockIssues);
+  String? latestAiTaskKey;
+
+  AppState() {
+    _loadLatestAiTaskKey();
+  }
 
   bool get isStudent => currentUser?.role == Role.student;
 
@@ -45,6 +51,19 @@ class AppState extends ChangeNotifier {
   static AppState of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<AppStateProvider>()!.notifier!;
 
+  Future<void> _loadLatestAiTaskKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    latestAiTaskKey = prefs.getString('latest_ai_task_key');
+    notifyListeners();
+  }
+
+  Future<void> saveLatestAiTaskKey(String? key) async {
+    if (key == null || key.trim().isEmpty) return;
+    latestAiTaskKey = key;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('latest_ai_task_key', key);
+    notifyListeners();
+  }
 
   void login(AppUser user) {
     currentUser = user;
