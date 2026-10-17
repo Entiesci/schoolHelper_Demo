@@ -5,6 +5,7 @@ import '../app_state.dart';
 import '../models.dart';
 import '../services/api_service.dart';
 import 'ai_task_detail_page.dart';
+import '../services/local_feedback_store.dart';
 
 class AiReviewPage extends StatefulWidget {
   const AiReviewPage({super.key});
@@ -29,7 +30,14 @@ class _AiReviewPageState extends State<AiReviewPage> {
   @override
   Widget build(BuildContext context) {
     final state = AppState.of(context);
-    final results = state.aiResults
+    // 👇 合并：学生主动提交的反馈 + AI 清洗结果
+    final allResults = [
+      ...LocalFeedbackStore.items
+          .where((r) => !state.aiResults.any((a) => a.id == r.id)), // 防重复
+      ...state.aiResults,
+    ];
+
+    final results = allResults
         .where((r) => r.confidence >= _minConfidence)
         .where((r) => !_hideAdopted || !r.adopted)
         .toList();
@@ -40,16 +48,16 @@ class _AiReviewPageState extends State<AiReviewPage> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           child: Row(
             children: [
-              _statCard(context, '待审核', '${state.aiResults.where((r) => !r.adopted).length}',
+              _statCard(context, '待审核', '${allResults.where((r) => !r.adopted).length}',
                   Icons.pending_actions, Colors.orange),
               const SizedBox(width: 8),
-              _statCard(context, '已采纳', '${state.aiResults.where((r) => r.adopted).length}',
+              _statCard(context, '已采纳', '${allResults.where((r) => r.adopted).length}',
                   Icons.check_circle, Colors.green),
               const SizedBox(width: 8),
               _statCard(context, '平均置信度',
-                  state.aiResults.isEmpty
+                  allResults.isEmpty
                       ? '0%'
-                      : '${((state.aiResults.map((r) => r.confidence).reduce((a, b) => a + b) / state.aiResults.length) * 100).toStringAsFixed(0)}%',
+                      : '${((allResults.map((r) => r.confidence).reduce((a, b) => a + b) / allResults.length) * 100).toStringAsFixed(0)}%',
                   Icons.psychology, const Color(0xFF3D5AFE)),
             ],
           ),
@@ -244,6 +252,11 @@ class _AiReviewPageState extends State<AiReviewPage> {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
           FilledButton(
             onPressed: () {
+                        // 👇 若该结果来自本地暂存（LocalFeedbackStore），先同步进 AppState，
+              //    否则 adoptAiResult 会因找不到 id 而抛出 Bad state: No element
+              if (!state.aiResults.any((a) => a.id == r.id)) {
+                state.aiResults.add(r);
+              }
               state.addIssue(Issue(
                 id: 'FB-${2000 + state.issues.length}',
                 title: r.cleanTitle,
@@ -306,6 +319,10 @@ class _AiReviewPageState extends State<AiReviewPage> {
                 child: FilledButton(
                   child: const Text('保存修正并标记采纳'),
                   onPressed: () {
+                    // 同步本地暂存数据进 AppState，防止 correctAiResult 找不到
+                    if (!state.aiResults.any((a) => a.id == r.id)) {
+                      state.aiResults.add(r);
+                    }
                     state.correctAiResult(r.id, dept, priority);
                     Navigator.pop(ctx);
                     Navigator.pop(ctx);

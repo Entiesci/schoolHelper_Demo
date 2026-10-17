@@ -6,6 +6,7 @@ import 'pages/issue_list_page.dart';
 import 'pages/kanban_page.dart';
 import 'pages/login_page.dart';
 import 'pages/todo_page.dart';
+import 'pages/smart_feedback_page.dart';
 import 'pages/ai_review_page.dart';
 
 class HomeShell extends StatefulWidget {
@@ -25,14 +26,14 @@ class _HomeShellState extends State<HomeShell> {
 
     // 学生：列表 / 提交 / 看板；员工：待办 / 列表 / 看板
     final pages = isStudent
-        ? [const IssueListPage(), const FeedbackFormPage(), const KanbanPage()]
+        ? [const IssueListPage(), const FeedbackFormPage(),const SmartFeedbackPage(), const KanbanPage()]
         : [const TodoPage(), const AiReviewPage(), const IssueListPage(), const KanbanPage()];
         // : [const TodoPage(), const AiReviewPage(), const AiReviewPage(), const KanbanPage()];
 
     final navItems = isStudent
         ? const [BottomNavigationBarItem(icon: Icon(Icons.list), label: '问题列表'),
                  BottomNavigationBarItem(icon: Icon(Icons.edit_note), label: '提交反馈'),
-                //  BottomNavigationBarItem(icon: Icon(Icons.psychology), label: 'AI 清洗'),
+                 BottomNavigationBarItem(icon: Icon(Icons.auto_awesome), label: '智能反馈'),
                  BottomNavigationBarItem(icon: Icon(Icons.view_kanban), label: '看板')]
         : const [
                 BottomNavigationBarItem(icon: Icon(Icons.checklist), label: '我的待办'),
